@@ -1,0 +1,9 @@
+﻿menus:
+  team:
+    material: WHITE_WOOL
+    prompt: "Select Team"
+    colour: GOLD
+  class:
+    material: BOOK
+    prompt: "Select Class"
+    colour: GOLD

@@ -1,0 +1,11 @@
+﻿name: MultiFuse
+version: '${project.version}'
+main: com.probreezer.multiFuse.MultiFuse
+api-version: '1.21.1'
+authors: [ ProBreezer ]
+website: https://probreezer.com
+dependencies:
+  server:
+    DecentHolograms:
+      load: BEFORE
+      required: true

@@ -1,0 +1,43 @@
+﻿default: "Knight"
+kits:
+  Knight:
+    icon: IRON_SWORD
+    items:
+      - material: LEATHER_HELMET
+        slot: 103
+      - material: LEATHER_CHESTPLATE
+        slot: 102
+      - material: LEATHER_LEGGINGS
+        slot: 101
+      - material: LEATHER_BOOTS
+        slot: 100
+      - material: SHIELD
+        slot: 104
+      - material: STONE_SWORD
+        slot: 0
+      - material: STONE_PICKAXE
+        slot: 1
+      - material: GOLDEN_APPLE
+        amount: 1
+        slot: 8
+  Archer:
+    icon: BOW
+    items:
+      - material: LEATHER_HELMET
+        slot: 103
+      - material: LEATHER_CHESTPLATE
+        slot: 102
+      - material: LEATHER_LEGGINGS
+        slot: 101
+      - material: LEATHER_BOOTS
+        slot: 100
+      - material: BOW
+        slot: 0
+      - material: ARROW
+        slot: 7
+        amount: 12
+      - material: STONE_PICKAXE
+        slot: 1
+      - material: GOLDEN_APPLE
+        amount: 1
+        slot: 8

@@ -1,0 +1,6 @@
+name: MultiFuse
+version: '1.0-SNAPSHOT'
+main: com.probreezer.multiFuse.MultiFuse
+api-version: '1.21'
+depend:
+  - DecentHolograms
