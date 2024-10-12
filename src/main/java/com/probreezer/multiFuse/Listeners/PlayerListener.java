@@ -37,6 +37,7 @@ public class PlayerListener implements Listener {
         player.sendTitle("§6MultiFuse!", "§1A ProBreezer Gamemode", 10, 70, 20);
         event.setJoinMessage(Text.getRolePrefix(player) + ChatColor.GOLD + player.getName() + ChatColor.GRAY + " has " + ChatColor.GREEN + "joined" + ChatColor.GRAY + " the game");
         team = team != null ? team : "Gray";
+        plugin.game.scoreboard.onPlayerJoin(player);
         plugin.game.scoreboard.setPlayerTeam(player, team);
 
         if (plugin.game.state) {
@@ -60,6 +61,8 @@ public class PlayerListener implements Listener {
         var gameState = game.state;
         var player = event.getPlayer();
         var team = PlayerDataManager.getTeam(player);
+
+        plugin.game.scoreboard.onPlayerQuit(player);
 
         event.setQuitMessage(Text.getRolePrefix(player) + ChatColor.GOLD + player.getName() + ChatColor.GRAY + " has " + ChatColor.RED + "quit" + ChatColor.GRAY + " the game");
 

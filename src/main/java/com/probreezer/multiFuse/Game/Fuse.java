@@ -97,7 +97,7 @@ public class Fuse {
 
         this.percentageHealth = getPercentageHealth();
 
-        var totalTeamFuseHealth = fuseManager.getTeamFuseHealth();
+        var totalTeamFuseHealth = fuseManager.getTeamFuseHealth(this.colour);
         if (totalTeamFuseHealth <= 0) {
             plugin.game.endGame(colour);
         }

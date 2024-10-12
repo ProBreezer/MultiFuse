@@ -7,18 +7,18 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.*;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class ScoreboardUtils {
     private final MultiFuse plugin;
     private final ScoreboardManager manager;
-    private final Scoreboard globalScoreboard;
-    private final Objective sidebar;
+    private final Map<UUID, Scoreboard> playerScoreboards = new HashMap<>();
 
     public ScoreboardUtils(MultiFuse plugin) {
         this.plugin = plugin;
         this.manager = Bukkit.getScoreboardManager();
-        this.globalScoreboard = manager.getNewScoreboard();
-        this.sidebar = globalScoreboard.registerNewObjective("sidebar", "dummy", ChatColor.GOLD + "MultiFuse");
-        this.sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -27,16 +27,18 @@ public class ScoreboardUtils {
         }, 0L, 5L);
     }
 
+
     public void setPlayerTeam(Player player, String teamColor) {
-        var team = globalScoreboard.getTeam(teamColor);
+        var playerScoreboard = playerScoreboards.computeIfAbsent(player.getUniqueId(), k -> Bukkit.getScoreboardManager().getNewScoreboard());
+        var team = playerScoreboard.getTeam(teamColor);
         if (team == null) {
-            team = globalScoreboard.registerNewTeam(teamColor);
-            var color = ChatColor.valueOf(teamColor.toUpperCase());
+            team = playerScoreboard.registerNewTeam(teamColor);
+            ChatColor color = ChatColor.valueOf(teamColor.toUpperCase());
             team.setColor(color);
         }
 
         team.addEntry(player.getName());
-        player.setScoreboard(globalScoreboard);
+        player.setScoreboard(playerScoreboard);
 
         player.setPlayerListName(Text.getRolePrefix(player) + ChatColor.valueOf(teamColor.toUpperCase()) + team.getPrefix() + player.getName());
         player.setDisplayName(Text.getRolePrefix(player) + ChatColor.valueOf(teamColor.toUpperCase()) + team.getPrefix() + player.getName());
@@ -44,9 +46,23 @@ public class ScoreboardUtils {
         updateScoreboard(player);
     }
 
+
     public void updateScoreboard(Player player) {
-        sidebar.getScoreboard().getEntries().forEach(sidebar.getScoreboard()::resetScores);
-        var score = 15;
+        var config = plugin.getConfig();
+        boolean debug = config.getBoolean("Debug", false);
+
+        Scoreboard playerScoreboard = playerScoreboards.computeIfAbsent(player.getUniqueId(), k -> Bukkit.getScoreboardManager().getNewScoreboard());
+        Objective sidebar = playerScoreboard.getObjective("sidebar");
+        if (sidebar == null) {
+            sidebar = playerScoreboard.registerNewObjective("sidebar", "dummy", ChatColor.GOLD + "MultiFuse" + (config.getBoolean("Debug", false) ? (ChatColor.DARK_PURPLE + " [DEBUG]") : "") );
+            sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
+        }
+
+        for (String entry : playerScoreboard.getEntries()) {
+            playerScoreboard.resetScores(entry);
+        }
+
+        int score = 15;
 
         // Team information
         var teams = plugin.game.teams;
@@ -67,17 +83,31 @@ public class ScoreboardUtils {
         sidebar.getScore(ChatColor.GOLD + "Kills: " + ChatColor.GRAY + PlayerDataManager.getKills(player)).setScore(score--);
         sidebar.getScore(ChatColor.GOLD + "Deaths: " + ChatColor.GRAY + PlayerDataManager.getDeaths(player)).setScore(score--);
 
-        player.setScoreboard(globalScoreboard);
+        player.setScoreboard(playerScoreboard);
     }
+
 
     private String getBlankLine(int score) {
         return ChatColor.RESET.toString() + ChatColor.DARK_GRAY + String.format("%-" + score + "s", "");
     }
 
     public void removePlayer(Player player) {
-        for (Team team : globalScoreboard.getTeams()) {
-            team.removeEntry(player.getName());
+        Scoreboard playerScoreboard = playerScoreboards.remove(player.getUniqueId());
+        if (playerScoreboard != null) {
+            for (Team team : playerScoreboard.getTeams()) {
+                team.removeEntry(player.getName());
+            }
         }
         player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+    }
+
+    public void onPlayerJoin(Player player) {
+        var playerScoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+        playerScoreboards.put(player.getUniqueId(), playerScoreboard);
+        updateScoreboard(player);
+    }
+
+    public void onPlayerQuit(Player player) {
+        removePlayer(player);
     }
 }

@@ -44,6 +44,7 @@ public class BlockListener implements Listener {
         var player = event.getPlayer();
         var tool = player.getInventory().getItemInMainHand();
 
+        event.setExpToDrop(0);
         event.setDropItems(false);
 
         if (!blockManager.isMineableBlock(blockName) || !isCorrectTool(block, tool) || onCooldown(player, block)) {

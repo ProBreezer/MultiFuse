@@ -43,7 +43,7 @@ public class FuseManager {
         for (var team : this.config.getKeys(false)) {
             var teamSection = this.config.getConfigurationSection(team);
             var fuses = teamSection.getStringList("Fuses");
-            var totalFuseHealth = config.contains("TotalFuseHealth") ? config.getInt("TotalFuseHealth") : 100;
+            var totalFuseHealth = config.getInt("TotalFuseHealth", 100);
             var numberOfFuses = fuses.size();
             var shop = new Shop(plugin, team);
 
@@ -64,8 +64,9 @@ public class FuseManager {
                 .toList();
     }
 
-    public int getTeamFuseHealth() {
+    public int getTeamFuseHealth(String team) {
         return fuses.stream()
+                .filter(fuse -> fuse.colour.equalsIgnoreCase(team))
                 .mapToInt(fuse -> (int) fuse.health)
                 .sum();
     }

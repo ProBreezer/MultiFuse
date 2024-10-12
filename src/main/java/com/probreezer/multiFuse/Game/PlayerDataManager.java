@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.probreezer.multiFuse.Utils.RandomUtils.getRandomTeam;
+
 public class PlayerDataManager {
     private static MultiFuse plugin;
     private static NamespacedKey spawnKey;
@@ -43,10 +45,6 @@ public class PlayerDataManager {
         var currentTeam = getTeam(player);
 
         if (team != null) {
-            var newTeamPlayers = getTeamPlayers(team);
-            for (String playerName : newTeamPlayers) {
-            }
-
             var newTeamSize = getTeamPlayers(team).size();
             int otherTeamSize;
 
@@ -67,11 +65,15 @@ public class PlayerDataManager {
             }
             var playerSpawnPoint = SpawnPointUtils.getRandomSpawnPoint(team);
             player.getPersistentDataContainer().set(spawnKey, PersistentDataType.STRING, playerSpawnPoint);
+            player.getPersistentDataContainer().set(teamKey, PersistentDataType.STRING, team);
         }
 
-        player.getPersistentDataContainer().set(teamKey, PersistentDataType.STRING, team);
+        if (team == null) {
+            team = "Gray";
+            player.getPersistentDataContainer().remove(teamKey);
+            player.getPersistentDataContainer().remove(spawnKey);
+        }
 
-        team = team != null ? team : "Gray";
         plugin.game.scoreboard.setPlayerTeam(player, team);
     }
 
@@ -121,7 +123,7 @@ public class PlayerDataManager {
             }
         }
 
-        return lowestTeam != null ? lowestTeam : null;
+        return lowestTeam != null ? lowestTeam : getRandomTeam();
     }
 
     public static Boolean AllTeamPlayersOffline(String team) {
