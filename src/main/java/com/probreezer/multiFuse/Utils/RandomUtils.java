@@ -14,4 +14,9 @@ public class RandomUtils {
         return min + (int) Math.floor(Math.pow(randomValue, 3) * range);
     }
 
+    public static String getRandomTeam() {
+        var teamConfig = ConfigUtils.getConfig("teams");
+        var teams = teamConfig.getConfigurationSection("Teams").getKeys(false).toArray(new String[0]);
+        return teams[getWeightedRandom(0, teams.length - 1)];
+    }
 }
