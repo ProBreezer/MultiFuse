@@ -24,11 +24,14 @@ public class FuseManager {
         this.config = team.config;
     }
 
-    public void setFuses() {
-        var teamColour = team.name;
-        var teamSection = this.config.getConfigurationSection(teamColour);
-        var fuses = teamSection.getStringList("Fuses");
-        var numberOfFuses = fuses.size();
+    public void setFuses(ArrayList<String> teams) {
+        var config = plugin.getConfig();
+
+        for (var team : this.config.getKeys(false)) {
+            var teamSection = this.config.getConfigurationSection(team);
+            var fuses = teamSection.getStringList("Fuses");
+            var totalFuseHealth = config.contains("TotalFuseHealth") ? config.getInt("TotalFuseHealth") : 100;
+            var numberOfFuses = fuses.size();
             var shop = new Shop(plugin, team);
 
         for (int i = 0; i < numberOfFuses; i++) {
