@@ -1,5 +1,6 @@
 package com.probreezer.multiFuse;
 
+import com.probreezer.multiFuse.Commands.CommandLoader;
 import com.probreezer.multiFuse.Game.Game;
 import com.probreezer.multiFuse.Game.PlayerDataManager;
 import com.probreezer.multiFuse.Listeners.EventLoader;
@@ -45,6 +46,9 @@ public final class MultiFuse extends JavaPlugin {
 
         //Custom Configuration
         ConfigUtils.createCustomConfigs(this);
+
+        //Load Commands
+        CommandLoader.registerCommands(this);
 
         //Hologram Manager
         this.hologramManager = new HologramUtils(this);
