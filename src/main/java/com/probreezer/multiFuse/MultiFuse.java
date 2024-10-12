@@ -54,27 +54,13 @@ public final class MultiFuse extends JavaPlugin {
         this.hologramManager = new HologramUtils(this);
 
         //Set Default Spawn
-        Spawn.setSpawn(this);
-
-        //Keep Daytime
-        getServer().getScheduler().runTaskTimer(this, () -> {
-            WorldListener.maintainDaytime();
-        }, 0L, 600L);
+        SpawnUtils.setSpawn(this);
 
         //Set Game
         this.game = new Game(this);
-        this.game.world.setPVP(false);
-        this.game.world.setDifficulty(Difficulty.EASY);
-        this.game.world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
-        this.game.world.setGameRule(GameRule.DISABLE_RAIDS, true);
-        this.game.kitManager.loadKits();
 
         //Event
-        this.scoreboard = new ScoreboardUtils(this);
         EventLoader.registerEvents(this);
-
-        //BossBars
-        this.countdownManager = new CountdownManager(this);
 
         //Plugin Enabled
         getLogger().info("MultiFuse Enabled");
