@@ -1,0 +1,80 @@
+﻿Melon:
+  Respawn: 5
+  Items:
+    Melon_Slice:
+      Quantity: 4
+"%_Wood":
+  Respawn: 10
+  Items:
+    Oak_Planks:
+      Quantity: 4
+"%_Log":
+  Respawn: 10
+  Items:
+    Oak_Planks:
+      Quantity: 4
+"%_Leaves":
+  Items:
+    Apple:
+      Chance: 199
+      Quantity: 1
+    Feather:
+      Chance: 199
+      Quantity: 1
+    Golden_Apple:
+      Chance: 2
+      Quantity: 1
+Cobweb:
+  Items:
+    String:
+      Quantity: 1
+Stone:
+  Respawn: 10
+  Replace: Cobblestone
+  Items:
+    Cobblestone:
+      Quantity: 1
+Gravel:
+  Respawn: 10
+  Replace: Cobblestone
+  Items:
+    Flint:
+      Quantity: 1
+Coal_Ore:
+  Respawn: 10
+  Replace: Cobblestone
+  Items:
+    Coal:
+      Quantity: 1
+Iron_Ore:
+  Respawn: 30
+  Replace: Cobblestone
+  Items:
+    Iron_Ingot:
+      Quantity: 1
+Copper_Ore:
+  Respawn: 10
+  Replace: CobbleStone
+  Items:
+    Glowstone_Dust:
+      Name: "Repair Dust"
+      Quantity: 1
+      MaxQuantity: 5
+Gold_Ore:
+  Respawn: 30
+  Replace: Cobblestone
+  Coins: 3
+Diamond_Ore:
+  Respawn: 60
+  Replace: Cobblestone
+  Items:
+    Diamond:
+      Quantity: 1
+Emerald_Ore:
+  Respawn: 60
+  Replace: Cobblestone
+  Items:
+    Emerald:
+      Name: "Rebuild Gem"
+      Quantity: 1
+      MaxQuantity: 1

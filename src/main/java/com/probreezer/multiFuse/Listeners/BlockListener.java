@@ -1,21 +1,24 @@
 package com.probreezer.multiFuse.Listeners;
 
-import com.probreezer.multiFuse.Blocks.MineBlock;
-import com.probreezer.multiFuse.Game.Fuse;
+import com.probreezer.multiFuse.Game.PlayerDataManager;
 import com.probreezer.multiFuse.MultiFuse;
 import com.probreezer.multiFuse.Utils.InventoryUtils;
+import com.probreezer.multiFuse.Utils.RandomUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.Block;
 import org.bukkit.entity.FallingBlock;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+
+import java.util.Collection;
 
 public class BlockListener implements Listener {
 
@@ -32,25 +35,69 @@ public class BlockListener implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
+        var blockManager = plugin.game.blockManager;
         var block = event.getBlock();
-        var originalType = block.getType();
-        var originalData = block.getBlockData();
+        var blockType = block.getType();
+        var blockName = blockType.name();
+        var blockData = block.getBlockData();
+        var blockExp = event.getExpToDrop();
+        var player = event.getPlayer();
+        var tool = player.getInventory().getItemInMainHand();
 
-        event.setExpToDrop(0);
         event.setDropItems(false);
 
-        if (!MineBlock.isMineable(originalType)) {
+        if (!blockManager.isMineableBlock(blockName) || !isCorrectTool(block, tool) || onCooldown(player, block)) {
             event.setCancelled(true);
             return;
         }
 
-        var blockProperties = MineBlock.getByBlockMaterial(originalType);
-        InventoryUtils.giveItems(event.getPlayer(), blockProperties.dropItem, blockProperties.quantity, blockProperties.getMaxQuantity());
+        var blockProperties = blockManager.getMineableBlock(blockName);
+
+        if (blockProperties == null) {
+            event.setCancelled(true);
+            return;
+        }
+
+        if (blockManager.isCoinBlock(blockName)) {
+            var randomNumber = RandomUtils.getWeightedRandom(1, blockProperties.MaxCoins);
+            PlayerDataManager.incrementCoins(player, randomNumber);
+        } else {
+            var dropItemName = blockProperties.getDropName();
+            var dropItem = blockProperties.getDropItem(dropItemName);
+            var itemsGiven = InventoryUtils.giveItems(event.getPlayer(), Material.valueOf(dropItemName), dropItem.getQuantity(), dropItem.getMaxQuantity(), dropItem.name, dropItem.description);
+            if (itemsGiven == null || itemsGiven <= 0) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> block.setType(blockProperties.replacementBlock), 1L);
+        player.giveExp(blockExp);
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            block.setType(originalType);
-            block.setBlockData(originalData);
-        }, 20L * (blockProperties.respawnTime != null ? blockProperties.respawnTime : 0));
+            block.setType(blockType);
+            block.setBlockData(blockData);
+        }, blockProperties.respawn == 0 ? 1L : 20L * (blockProperties.respawn));
+    }
+
+    public boolean isCorrectTool(Block block, ItemStack tool) {
+        if (block.getType().name().contains("LEAVES")) return true;
+
+        Collection<ItemStack> drops = block.getDrops(tool);
+        return !drops.isEmpty();
+    }
+
+    public boolean onCooldown(Player player, Block block) {
+        var currentTime = System.currentTimeMillis();
+        var key = new NamespacedKey(plugin, "lastMinedTime-" + block.getType().name());
+        var lastMinedTime = player.getPersistentDataContainer().getOrDefault(key, PersistentDataType.LONG, 0L);
+
+        if (currentTime - lastMinedTime < 333) {
+            return true;
+        }
+
+        player.getPersistentDataContainer().set(key, PersistentDataType.LONG, currentTime);
+        return false;
     }
 
     @EventHandler
@@ -60,77 +107,5 @@ public class BlockListener implements Listener {
                 event.setCancelled(true);
             }
         }
-    }
-
-    @EventHandler
-    public void onFuseHit(BlockBreakEvent event) {
-        var teams = plugin.game.teamManager.teams;
-        Fuse fuse = null;
-
-        for (var team : teams.values()) {
-            if (team.fuseManager.getFuse(event.getBlock()) != null) {
-                fuse = team.fuseManager.getFuse(event.getBlock());
-            }
-        }
-
-        var player = event.getPlayer();
-        var playerTeam = plugin.game.teamManager.getTeamByPlayer(player.getUniqueId());
-
-        if (fuse == null || playerTeam == null) {
-            return;
-        }
-
-        if (!fuse.colour.equalsIgnoreCase(playerTeam.name)) {
-            fuse.takeDamage(playerTeam.name);
-        }
-    }
-
-    @EventHandler
-    public void onFuseHeal(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-
-        var player = event.getPlayer();
-        var block = event.getClickedBlock();
-
-        var currentTime = System.currentTimeMillis();
-        long lastHealTime = player.getPersistentDataContainer().getOrDefault(new NamespacedKey(plugin, "lastFuseHealTime"), PersistentDataType.LONG, 0L);
-
-        if (currentTime - lastHealTime < 500) {
-            return;
-        }
-
-        var teamManager = plugin.game.teamManager;
-        var teams = teamManager.teams;
-        var playerTeam = teamManager.getTeamByPlayer(player.getUniqueId());
-        Fuse fuse = null;
-
-
-        for (var team : teams.values()) {
-            if (team.fuseManager.getFuse(block) != null) {
-                fuse = team.fuseManager.getFuse(block);
-            }
-        }
-
-        if (fuse == null || playerTeam == null) {
-            return;
-        }
-
-        var item = player.getInventory().getItemInMainHand().getType();
-
-        if (!fuse.colour.equalsIgnoreCase(playerTeam.name)) {
-            return;
-        }
-
-        if (Material.GLOWSTONE_DUST == item) {
-            fuse.repair(player);
-        }
-
-        if (Material.EMERALD == item) {
-            fuse.respawn(player);
-        }
-
-        player.getPersistentDataContainer().set(new NamespacedKey(plugin, "lastFuseHealTime"), PersistentDataType.LONG, currentTime);
     }
 }
