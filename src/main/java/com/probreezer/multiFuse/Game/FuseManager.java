@@ -29,6 +29,7 @@ public class FuseManager {
         var teamSection = this.config.getConfigurationSection(teamColour);
         var fuses = teamSection.getStringList("Fuses");
         var numberOfFuses = fuses.size();
+            var shop = new Shop(plugin, team);
 
         for (int i = 0; i < numberOfFuses; i++) {
             var Fuse = fuses.get(i);
