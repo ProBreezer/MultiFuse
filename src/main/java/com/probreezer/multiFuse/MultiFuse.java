@@ -1,6 +1,7 @@
 package com.probreezer.multiFuse;
 
 import com.probreezer.multiFuse.Game.Game;
+import com.probreezer.multiFuse.Game.PlayerDataManager;
 import com.probreezer.multiFuse.Listeners.EventLoader;
 import com.probreezer.multiFuse.Listeners.WorldListener;
 import com.probreezer.multiFuse.Lobby.Spawn;
@@ -35,6 +36,9 @@ public final class MultiFuse extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        //Data Manager
+        PlayerDataManager.initialise(this);
+
         //Configuration
         saveDefaultConfig();
         reloadConfig();

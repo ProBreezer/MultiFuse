@@ -1,10 +1,10 @@
 package com.probreezer.multiFuse.Listeners;
 
-import com.probreezer.multiFuse.Blocks.MineBlock;
-import com.probreezer.multiFuse.Game.GamePlayer;
 import com.probreezer.multiFuse.Game.Menu;
+import com.probreezer.multiFuse.Game.PlayerDataManager;
 import com.probreezer.multiFuse.MultiFuse;
 import com.probreezer.multiFuse.Utils.InventoryUtils;
+import com.probreezer.multiFuse.Utils.Text;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,15 +12,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerPickupItemEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import static com.probreezer.multiFuse.Utils.CountdownManager.updateLobbyCountdown;
@@ -36,25 +32,22 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         var player = event.getPlayer();
-        var playerId = player.getUniqueId();
-        var playerManager = plugin.game.playerManager;
-        var isPlayerPresent = playerManager.getPlayer(playerId).isPresent();
+        var team = PlayerDataManager.getTeam(player);
+        var isPlayerPresent = team != null;
         player.sendTitle("§6MultiFuse!", "§1A ProBreezer Gamemode", 10, 70, 20);
-        event.setJoinMessage(ChatColor.GOLD + player.getName() + ChatColor.GRAY + " has " + ChatColor.GREEN + "joined" + ChatColor.GRAY + " the game");
+        event.setJoinMessage(Text.getRolePrefix(player) + ChatColor.GOLD + player.getName() + ChatColor.GRAY + " has " + ChatColor.GREEN + "joined" + ChatColor.GRAY + " the game");
+        team = team != null ? team : "Gray";
+        plugin.game.scoreboard.setPlayerTeam(player, team);
 
         if (plugin.game.state) {
             if (!isPlayerPresent) {
                 player.setGameMode(GameMode.SPECTATOR);
                 return;
             }
-            playerRespawn(player, playerManager.getPlayer(playerId));
+            playerRespawn(player);
         }
 
         if (!plugin.game.state) {
-            if (!isPlayerPresent) {
-                playerManager.addPlayer(new GamePlayer(plugin, player));
-            }
-
             InventoryUtils.clearInventory(player);
             Menu.giveMenuItems(plugin, player);
             updateLobbyCountdown(plugin);
@@ -65,10 +58,10 @@ public class PlayerListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         var game = plugin.game;
         var gameState = game.state;
-        var playerManager = game.playerManager;
         var player = event.getPlayer();
-        var teamManager = game.teamManager;
-        var team = teamManager.getTeamByPlayer(player.getUniqueId());
+        var team = PlayerDataManager.getTeam(player);
+
+        event.setQuitMessage(Text.getRolePrefix(player) + ChatColor.GOLD + player.getName() + ChatColor.GRAY + " has " + ChatColor.RED + "quit" + ChatColor.GRAY + " the game");
 
         if (Bukkit.getOnlinePlayers().isEmpty()) {
             Bukkit.getScheduler().runTaskLater(plugin, Bukkit::shutdown, 1L);
@@ -76,21 +69,19 @@ public class PlayerListener implements Listener {
         }
 
         if (gameState && team != null) {
-            var teamName = team.name;
+            var teamName = team;
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                var allTeamPlayersOffline = teamManager.allTeamPlayersOffline(teamName);
+                var allTeamPlayersOffline = PlayerDataManager.AllTeamPlayersOffline(teamName);
 
                 if (allTeamPlayersOffline) {
-                    var otherTeam = teamManager.getOtherTeam(teamName);
+                    var otherTeam = PlayerDataManager.getTeam(PlayerDataManager.getOtherTeamPlayers(teamName).get(0));
                     if (otherTeam != null) {
-                        game.endGame(otherTeam.name);
+                        game.endGame(otherTeam);
                     }
                 }
             }, 5L);
         } else {
-            playerManager.removePlayer(player.getUniqueId());
-            teamManager.removePlayerFromTeam(player);
             Bukkit.getScheduler().runTaskLater(plugin, () -> updateLobbyCountdown(plugin), 1L);
         }
     }
@@ -102,11 +93,11 @@ public class PlayerListener implements Listener {
             return;
         }
 
-        var victimTeam = plugin.game.teamManager.getTeamByPlayer(victimPlayer.getUniqueId());
-        var attackerTeam = plugin.game.teamManager.getTeamByPlayer(attackerPlayer.getUniqueId());
+        var victimTeam = PlayerDataManager.getTeam(victimPlayer);
+        var attackerTeam = PlayerDataManager.getTeam(attackerPlayer);
 
-        var victimTeamName = victimTeam.name;
-        var attackerTeamName = attackerTeam.name;
+        var victimTeamName = victimTeam;
+        var attackerTeamName = attackerTeam;
 
         if (victimTeamName.equalsIgnoreCase(attackerTeamName)) {
             event.setCancelled(true);
@@ -115,24 +106,24 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
-        var teamManager = plugin.game.teamManager;
         var player = event.getEntity();
-        var gamePlayer = plugin.game.playerManager.getPlayer(player.getUniqueId());
         var killer = player.getKiller();
-        var playerTeam = teamManager.getTeamByPlayer(player.getUniqueId());
-        var killerTeam = teamManager.getTeamByPlayer(killer.getUniqueId());
-        var playerChatColor = ChatColor.valueOf(playerTeam.name.toUpperCase());
-        var killerChatColor = ChatColor.valueOf(killerTeam.name.toUpperCase());
+        var playerTeam = PlayerDataManager.getTeam(player);
+        var playerChatColor = ChatColor.valueOf(playerTeam.toUpperCase());
 
         if (killer != null) {
+            PlayerDataManager.incrementKills(killer);
+            var killerTeam = PlayerDataManager.getTeam(killer);
+            var killerChatColor = ChatColor.valueOf(killerTeam.toUpperCase());
             event.setDeathMessage(playerChatColor + player.getName() + ChatColor.GRAY + " was killed by " + killerChatColor + killer.getName());
         } else {
             event.setDeathMessage(playerChatColor + player.getName() + ChatColor.GRAY + " killed themselves");
         }
 
+        PlayerDataManager.incrementDeaths(player);
         event.getDrops().clear();
         dropItems(player);
-        playerRespawn(player, gamePlayer);
+        playerRespawn(player);
     }
 
     private void dropItems(Player player) {
@@ -149,15 +140,15 @@ public class PlayerListener implements Listener {
 
 
     private Predicate<ItemStack> getShouldDropItems(Player player) {
-        return item -> item != null && (Material.GLOWSTONE_DUST == item.getType() || MineBlock.isDropItem(item.getType()));
+        return item -> item != null && (plugin.game.blockManager.isDropItem(item.getType().name()));
     }
 
     private Predicate<ItemStack> getKeepItems(Player player) {
-        return item -> item != null && (Material.GLOWSTONE_DUST == item.getType() || MineBlock.isDropItem(item.getType()) || isArmor(player, item.getType()) || item.getType() == Material.SHIELD);
+        return item -> item != null && (plugin.game.blockManager.isDropItem(item.getType().name()) || isArmor(player, item.getType()) || item.getType() == Material.SHIELD);
     }
 
-    private void playerRespawn(Player player, Optional<GamePlayer> gamePlayer) {
-        var config =  plugin.getConfig();
+    private void playerRespawn(Player player) {
+        var config = plugin.getConfig();
         var respawnTime = config.getInt("RespawnTime");
         var shouldKeepItems = getKeepItems(player);
 
@@ -175,15 +166,15 @@ public class PlayerListener implements Listener {
                 player.setGameMode(GameMode.SPECTATOR);
                 player.sendMessage(ChatColor.GRAY + "You will respawn in 10 seconds...");
 
-                if (gamePlayer.isPresent() && gamePlayer.get().spawn != null) {
-                    player.teleport(gamePlayer.get().spawn);
+                if (PlayerDataManager.getSpawn(player) != null) {
+                    player.teleport(PlayerDataManager.getSpawn(player));
                 }
 
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        if (gamePlayer.isPresent() && gamePlayer.get().spawn != null) {
-                            player.teleport(gamePlayer.get().spawn);
+                        if (PlayerDataManager.getSpawn(player) != null) {
+                            player.teleport(PlayerDataManager.getSpawn(player));
                         }
 
                         player.setGameMode(GameMode.SURVIVAL);
@@ -226,12 +217,28 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
+    public void onBucketEmpty(PlayerBucketEmptyEvent event) {
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onBucketFill(PlayerBucketFillEvent event) {
+        event.setCancelled(true);
+    }
+
+    @EventHandler
     public void onPlayerPickupItem(PlayerPickupItemEvent event) {
         var pickupItem = event.getItem();
         var itemStack = pickupItem.getItemStack();
-        var dropItem = itemStack.getType();
+        var pickupItemType = itemStack.getType();
+        var pickupItemName = itemStack.getItemMeta().getDisplayName();
+        var pickupItemLore = itemStack.getItemMeta().getLore();
+        String pickupItemDescription = null;
+        if (pickupItemLore != null) {
+            pickupItemDescription = pickupItemLore.getFirst();
+        }
         var player = event.getPlayer();
-        var droppedItem = MineBlock.getByDropItem(dropItem);
+        var droppedItem = plugin.game.blockManager.getDropItem(pickupItemType.name());
 
         if (droppedItem == null) return;
 
@@ -240,8 +247,8 @@ public class PlayerListener implements Listener {
 
         event.setCancelled(true);
 
-        int amountToPickup = itemStack.getAmount();
-        Integer amountPickedUp = InventoryUtils.giveItems(player, dropItem, amountToPickup, maxAmount);
+        var amountToPickup = itemStack.getAmount();
+        var amountPickedUp = InventoryUtils.giveItems(player, pickupItemType, amountToPickup, maxAmount, pickupItemName, pickupItemDescription);
 
         if (amountPickedUp == null || amountPickedUp == 0) return;
 
