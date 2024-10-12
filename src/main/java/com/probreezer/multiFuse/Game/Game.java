@@ -118,6 +118,8 @@ public class Game {
         this.state = false;
         this.wallManager.restoreBlocks();
 
+        runStats();
+
         Bukkit.broadcastMessage(Text.PREFIX + "Server is restarting in 20 seconds...");
 
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
@@ -160,7 +162,10 @@ public class Game {
 
 
                 message.append(Text.PREFIX)
-                        .append(ChatColor.valueOf(team))
+                        .append(ChatColor.GOLD)
+                        .append(stat.name())
+                        .append(": ")
+                        .append(ChatColor.valueOf(team.toUpperCase()))
                         .append(playerName)
                         .append(" (")
                         .append(value)
