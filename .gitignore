@@ -1,4 +1,7 @@
-﻿# IntelliJ IDEA
+﻿# Excluded Config Files
+roles.yml
+
+# IntelliJ IDEA
 .idea/
 *.iws
 *.iml
@@ -57,7 +60,6 @@ plugins/
 server/
 
 # Config files that might contain sensitive information
-config.yml
 database.yml
 
 # Ignore all .jar files except those in the libs directory
