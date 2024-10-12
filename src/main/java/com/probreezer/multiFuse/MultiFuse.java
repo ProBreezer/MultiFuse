@@ -16,9 +16,7 @@ import java.io.IOException;
 public final class MultiFuse extends JavaPlugin {
 
     public HologramUtils hologramManager;
-    public CountdownManager countdownManager;
     public Game game;
-    public ScoreboardUtils scoreboard;
 
     @Override
     public void onLoad() {
