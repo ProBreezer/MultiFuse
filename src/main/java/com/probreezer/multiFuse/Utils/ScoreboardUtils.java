@@ -54,7 +54,7 @@ public class ScoreboardUtils {
         Scoreboard playerScoreboard = playerScoreboards.computeIfAbsent(player.getUniqueId(), k -> Bukkit.getScoreboardManager().getNewScoreboard());
         Objective sidebar = playerScoreboard.getObjective("sidebar");
         if (sidebar == null) {
-            sidebar = playerScoreboard.registerNewObjective("sidebar", "dummy", ChatColor.GOLD + "MultiFuse" + (config.getBoolean("Debug", false) ? (ChatColor.DARK_PURPLE + " [DEBUG]") : "") );
+            sidebar = playerScoreboard.registerNewObjective("sidebar", "dummy", ChatColor.GOLD + "MultiFuse" + (config.getBoolean("Debug", false) ? (ChatColor.DARK_PURPLE + " [DEBUG]") : ""));
             sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
 

@@ -16,7 +16,6 @@ import java.util.List;
 public class Fuse {
     public final Material fuseBlock;
     private final MultiFuse plugin;
-    private FileConfiguration config;
     private final Location hologramLocation;
     public int id;
     public String colour;
@@ -26,6 +25,7 @@ public class Fuse {
     public boolean respawned;
     public Coordinates coordinates;
     public Block block;
+    private FileConfiguration config;
     private FuseManager fuseManager;
 
 
