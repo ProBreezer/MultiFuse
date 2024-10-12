@@ -18,7 +18,6 @@ public class ChatListener implements Listener {
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         var player = event.getPlayer();
         var displayName = player.getDisplayName();
-        event.setFormat(displayName + ": " + ChatColor.WHITE + "%2$s");
+        event.setFormat(displayName + ChatColor.GRAY + ": " + ChatColor.WHITE + "%2$s");
     }
 }
-
