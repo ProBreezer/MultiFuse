@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.List;
 public class Fuse {
     public final Material fuseBlock;
     private final MultiFuse plugin;
+    private FileConfiguration config;
     private final Location hologramLocation;
     public int id;
     public String colour;
@@ -29,10 +31,17 @@ public class Fuse {
 
     public Fuse(MultiFuse plugin, FuseManager fuseManager, int id, String colour, int health, Coordinates coordinates) {
         this.plugin = plugin;
+        this.config = plugin.getConfig();
         this.fuseManager = fuseManager;
         this.fuseBlock = BlockManager.getTeamFuseBlock(colour);
         this.id = id;
         this.colour = colour;
+
+        boolean debug = config.getBoolean("Debug", false);
+        if (debug) {
+            health /= 4;
+        }
+
         this.health = health;
         this.maxHealth = health;
         this.percentageHealth = 100;

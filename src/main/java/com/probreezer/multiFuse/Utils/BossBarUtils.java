@@ -6,11 +6,13 @@ import org.bukkit.Sound;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 public class BossBarUtils {
     private final MultiFuse plugin;
+    private final FileConfiguration config;
     private final BossBar bossBar;
     private final String id;
     public boolean isStarted;
@@ -24,8 +26,15 @@ public class BossBarUtils {
 
     public BossBarUtils(MultiFuse plugin, String id, int seconds, String title, BarColor color, Runnable onCompleteAction) {
         this.plugin = plugin;
+        this.config = plugin.getConfig();
         this.id = id;
         this.bossBar = Bukkit.createBossBar(title, color, BarStyle.SOLID);
+
+        boolean debug = config.getBoolean("Debug", false);
+        if (debug) {
+            seconds /= 4;
+        }
+
         this.totalSeconds = seconds;
         this.timeRemaining = seconds;
         this.isPaused = false;

@@ -21,3 +21,4 @@ Phases:
     Time: 300
 TotalFuseHealth: 200
 RespawnTime: 10
+Debug: true
