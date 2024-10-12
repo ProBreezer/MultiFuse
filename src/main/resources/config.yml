@@ -1,0 +1,23 @@
+﻿Spawn:
+  x: 0
+  y: 246
+  z: 0
+Phases:
+  Start:
+    Title: "Game starts in"
+    Colour: YELLOW
+    Time: 60
+  Preparation:
+    Title: "Preparation ends in"
+    Colour: PURPLE
+    Time: 300
+  Game:
+    Title: "Game ends in"
+    Colour: BLUE
+    Time: 900
+  Overtime:
+    Title: "Overtime ends in"
+    Colour: RED
+    Time: 300
+TotalFuseHealth: 200
+RespawnTime: 10
