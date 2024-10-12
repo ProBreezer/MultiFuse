@@ -75,12 +75,12 @@ public class Kit {
     }
 
     public void applyTo(Player player) {
-        var team = plugin.game.teamManager.getTeamByPlayer(player.getUniqueId());
-        var teamColour = team != null ? getColour(team.name) : Color.WHITE;
-        var teamDyeColour = team != null ? getDyeColour(team.name) : DyeColor.WHITE;
+        var team = PlayerDataManager.getTeam(player);
+        var teamColour = team != null ? getColour(team) : Color.WHITE;
+        var teamDyeColour = team != null ? getDyeColour(team) : DyeColor.WHITE;
         var inventory = player.getInventory();
 
-        plugin.getLogger().info("Applying kit " + name + " to player [" + team.name + "] " + player.getName());
+        plugin.getLogger().info("Applying kit " + name + " to player [" + team + "] " + player.getName());
 
         items.forEach((slot, item) -> {
             if ((item.getType().name().startsWith("LEATHER_") && item.getType() != Material.LEATHER) || item.getType() == Material.SHIELD) {
