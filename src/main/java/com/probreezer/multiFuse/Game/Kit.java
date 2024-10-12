@@ -33,25 +33,25 @@ public class Kit {
     }
 
     private Color getColour(String team) {
-        var teamColor = Color.WHITE;
+        var teamColour = Color.WHITE;
 
         switch (team.toUpperCase()) {
-            case "RED" -> teamColor = Color.RED;
-            case "BLUE" -> teamColor = Color.BLUE;
+            case "RED" -> teamColour = Color.RED;
+            case "BLUE" -> teamColour = Color.BLUE;
         }
 
-        return teamColor;
+        return teamColour;
     }
 
     private DyeColor getDyeColour(String team) {
-        var teamColor = DyeColor.WHITE;
+        var teamColour = DyeColor.WHITE;
 
         switch (team.toUpperCase()) {
-            case "RED" -> teamColor = DyeColor.RED;
-            case "BLUE" -> teamColor = DyeColor.BLUE;
+            case "RED" -> teamColour = DyeColor.RED;
+            case "BLUE" -> teamColour = DyeColor.BLUE;
         }
 
-        return teamColor;
+        return teamColour;
     }
 
     private ItemStack setKitColour(ItemStack item, Color colour, DyeColor dyeColour) {
