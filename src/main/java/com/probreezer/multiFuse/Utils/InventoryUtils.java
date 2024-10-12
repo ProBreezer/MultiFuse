@@ -4,37 +4,17 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Collections;
 import java.util.HashMap;
 
 public class InventoryUtils {
-    public static Integer giveItems(Player player, Material dropItem, int quantity, Integer maxQuantity) {
+    public static Integer giveItems(Player player, Material dropItem, int quantity, Integer maxQuantity, String customName, String description) {
         var inventory = player.getInventory();
 
-        if (maxQuantity != null) {
-            int currentAmount = 0;
-            for (ItemStack item : inventory.getContents()) {
-                if (item != null && (item.getType() == dropItem ||
-                        (dropItem == Material.GLOWSTONE_DUST && item.getItemMeta().getDisplayName().equals("Repair Dust")))) {
-                    currentAmount += item.getAmount();
-                }
-            }
+        quantity = getGiveAmount(player, dropItem, quantity, maxQuantity);
+        if (quantity <= 0) return 0;
 
-            if ((currentAmount + quantity) > maxQuantity) {
-                quantity = maxQuantity - currentAmount;
-            }
-
-            if (quantity <= 0) return 0;
-        }
-
-        ItemStack itemToAdd;
-        if (dropItem == Material.GLOWSTONE_DUST) {
-            itemToAdd = new ItemStack(dropItem, quantity);
-            var meta = itemToAdd.getItemMeta();
-            meta.setDisplayName("Repair Dust");
-            itemToAdd.setItemMeta(meta);
-        } else {
-            itemToAdd = new ItemStack(dropItem, quantity);
-        }
+        var itemToAdd = createGiveItemStack(dropItem, quantity, customName, description);
 
         HashMap<Integer, ItemStack> leftover = inventory.addItem(itemToAdd);
         var actuallyAdded = itemToAdd.getAmount();
@@ -45,6 +25,68 @@ public class InventoryUtils {
         }
 
         return actuallyAdded;
+    }
+
+    public static int getGiveAmount(Player player, Material dropItem, int quantity, Integer maxQuantity) {
+        if (maxQuantity == null) return quantity;
+
+        var inventory = player.getInventory();
+        var currentAmount = 0;
+
+        for (ItemStack item : inventory.getContents()) {
+            if (item != null && item.getType() == dropItem) {
+                currentAmount += item.getAmount();
+            }
+        }
+
+        if ((currentAmount + quantity) > maxQuantity) {
+            quantity = maxQuantity - currentAmount;
+        }
+
+        return quantity;
+    }
+
+    private static ItemStack createGiveItemStack(Material material, int amount, String customName, String description) {
+        var item = new ItemStack(material, amount);
+        var meta = item.getItemMeta();
+        if (meta != null) {
+            if (customName != null) {
+                meta.setDisplayName(customName);
+            }
+            if (description != null) {
+                meta.setLore(Collections.singletonList(description));
+            }
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    public static int countItems(Player player, Material checkItem) {
+        var inventory = player.getInventory();
+        int count = 0;
+
+        for (ItemStack item : inventory.getContents()) {
+            if (item != null && item.getType() == checkItem) {
+                count += item.getAmount();
+            }
+        }
+        return count;
+    }
+
+    public static void removeItems(Player player, Material removeItem, int quantity) {
+        var inventory = player.getInventory();
+
+        for (ItemStack item : inventory.getContents()) {
+            if (item != null && item.getType() == removeItem) {
+                int newAmount = item.getAmount() - quantity;
+                if (newAmount > 0) {
+                    item.setAmount(newAmount);
+                } else {
+                    inventory.removeItem(item);
+                }
+                break;
+            }
+        }
     }
 
 
