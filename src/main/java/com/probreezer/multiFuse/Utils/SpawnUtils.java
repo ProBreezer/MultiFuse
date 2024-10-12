@@ -1,8 +1,8 @@
-package com.probreezer.multiFuse.Lobby;
+package com.probreezer.multiFuse.Utils;
 
 import com.probreezer.multiFuse.MultiFuse;
 
-public class Spawn {
+public class SpawnUtils {
     public static void setSpawn(MultiFuse plugin) {
         var config = plugin.getConfig();
         var world = plugin.getServer().getWorlds().getFirst();
