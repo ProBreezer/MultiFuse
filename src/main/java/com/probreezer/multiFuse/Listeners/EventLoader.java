@@ -7,6 +7,7 @@ public class EventLoader {
         var pluginManager = plugin.getServer().getPluginManager();
         pluginManager.registerEvents(new WorldListener(plugin), plugin);
         pluginManager.registerEvents(new BlockListener(plugin), plugin);
+        pluginManager.registerEvents(new FuseListener(plugin), plugin);
         pluginManager.registerEvents(new PlayerListener(plugin), plugin);
         pluginManager.registerEvents(new MenuListener(plugin), plugin);
         pluginManager.registerEvents(new ChatListener(plugin), plugin);
