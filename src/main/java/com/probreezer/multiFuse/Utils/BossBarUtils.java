@@ -12,12 +12,15 @@ import org.bukkit.scheduler.BukkitTask;
 public class BossBarUtils {
     private final MultiFuse plugin;
     private final BossBar bossBar;
-    private final int totalSeconds;
     private final String id;
-    private final Runnable onCompleteAction;
+    public boolean isStarted;
+    public boolean isPaused;
     public boolean isCancelled;
+    private int totalSeconds;
+    private Runnable onCompleteAction;
     private BukkitTask countdownTask;
     private int timeRemaining;
+    private int pausedTimeRemaining;
 
     public BossBarUtils(MultiFuse plugin, String id, int seconds, String title, BarColor color, Runnable onCompleteAction) {
         this.plugin = plugin;
@@ -25,17 +28,43 @@ public class BossBarUtils {
         this.bossBar = Bukkit.createBossBar(title, color, BarStyle.SOLID);
         this.totalSeconds = seconds;
         this.timeRemaining = seconds;
+        this.isPaused = false;
         this.isCancelled = false;
         this.onCompleteAction = onCompleteAction;
     }
 
     public void start() {
-        if (countdownTask != null && !countdownTask.isCancelled()) {
-            countdownTask.cancel();
-        }
+        if (!this.isCancelled) updateBossBar();
+        if (this.isStarted) return;
+        this.isStarted = true;
         countdownTask = Bukkit.getScheduler().runTaskTimer(plugin, this::countdown, 0L, 20L);
         bossBar.setVisible(true);
         showBossBarToAllPlayers();
+        updateBossBar();
+    }
+
+    public void pause() {
+        if (!isPaused) {
+            isPaused = true;
+            pausedTimeRemaining = timeRemaining;
+        }
+    }
+
+    public void resume() {
+        if (isPaused) {
+            isPaused = false;
+            timeRemaining = pausedTimeRemaining;
+            countdown();
+        }
+    }
+
+    private void stop() {
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
+        bossBar.setVisible(false);
+        hideBossBarFromAllPlayers();
         updateBossBar();
     }
 
@@ -44,10 +73,13 @@ public class BossBarUtils {
     }
 
     private void countdown() {
-        if (plugin.countdownManager.getIsCancelled(id) || timeRemaining <= 0) {
+        if (isPaused) {
+            return;
+        }
+
+        if (isCancelled || timeRemaining <= 0) {
             stop();
             if (timeRemaining <= 0) {
-                plugin.getLogger().info("Countdown finished for " + id + ". Performing actions.");
                 performEndAction();
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f);
@@ -66,28 +98,23 @@ public class BossBarUtils {
         updateBossBar();
     }
 
-    private void stop() {
-        if (countdownTask != null) {
-            countdownTask.cancel();
-            countdownTask = null;
-        }
-        bossBar.setVisible(false);
-        hideBossBarFromAllPlayers();
-        updateBossBar();
-    }
-
     private void performEndAction() {
         if (onCompleteAction != null) {
             try {
                 onCompleteAction.run();
             } catch (Exception e) {
-                plugin.getLogger().warning("Error occurred while executing onCompleteAction: " + e.getMessage());
                 e.printStackTrace();
             }
         }
     }
 
-    private void updateBossBar() {
+    public void updateBossBar() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!bossBar.getPlayers().contains(player)) {
+                bossBar.addPlayer(player);
+            }
+        }
+
         var progress = (float) timeRemaining / totalSeconds;
         bossBar.setProgress(progress);
 
