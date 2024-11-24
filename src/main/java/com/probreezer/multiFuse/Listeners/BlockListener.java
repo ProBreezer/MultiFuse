@@ -1,6 +1,6 @@
 package com.probreezer.multiFuse.Listeners;
 
-import com.probreezer.multiFuse.Game.PlayerDataManager;
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
 import com.probreezer.multiFuse.MultiFuse;
 import com.probreezer.multiFuse.Utils.InventoryUtils;
 import com.probreezer.multiFuse.Utils.RandomUtils;
