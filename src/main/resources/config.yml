@@ -1,8 +1,4 @@
-﻿Spawn:
-  x: 0
-  y: 246
-  z: 0
-Phases:
+﻿Phases:
   Start:
     Title: "Game starts in"
     Colour: YELLOW
@@ -21,4 +17,3 @@ Phases:
     Time: 300
 TotalFuseHealth: 200
 RespawnTime: 10
-Debug: true
