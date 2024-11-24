@@ -1,5 +1,5 @@
 ﻿# Excluded Config Files
-roles.yml
+**/roles.yml
 
 # IntelliJ IDEA
 .idea/
