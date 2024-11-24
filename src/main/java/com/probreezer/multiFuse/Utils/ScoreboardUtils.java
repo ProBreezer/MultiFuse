@@ -1,7 +1,11 @@
 package com.probreezer.multiFuse.Utils;
 
-import com.probreezer.multiFuse.Game.PlayerDataManager;
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
 import com.probreezer.multiFuse.MultiFuse;
+import com.probreezer.untitledNetworkCore.UntitledNetworkCore;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -27,84 +31,100 @@ public class ScoreboardUtils {
         }, 0L, 5L);
     }
 
-
     public void setPlayerTeam(Player player, String teamColor) {
         var playerScoreboard = playerScoreboards.computeIfAbsent(player.getUniqueId(), k -> Bukkit.getScoreboardManager().getNewScoreboard());
         var team = playerScoreboard.getTeam(teamColor);
+        var color = NamedTextColor.NAMES.value(teamColor.toLowerCase());
         if (team == null) {
             team = playerScoreboard.registerNewTeam(teamColor);
-            ChatColor color = ChatColor.valueOf(teamColor.toUpperCase());
-            team.setColor(color);
+            team.color(color);
         }
 
-        team.addEntry(player.getName());
+        var playerName = player.getName();
+        team.addEntry(playerName);
         player.setScoreboard(playerScoreboard);
 
-        player.setPlayerListName(Text.getRolePrefix(player) + ChatColor.valueOf(teamColor.toUpperCase()) + team.getPrefix() + player.getName());
-        player.setDisplayName(Text.getRolePrefix(player) + ChatColor.valueOf(teamColor.toUpperCase()) + team.getPrefix() + player.getName());
-
-        updateScoreboard(player);
+        if (plugin.game.state) {
+            updateScoreboard(player);
+        }
     }
-
 
     public void updateScoreboard(Player player) {
         var config = plugin.getConfig();
-        boolean debug = config.getBoolean("Debug", false);
+        var debug = UntitledNetworkCore.isDebug();
 
-        Scoreboard playerScoreboard = playerScoreboards.computeIfAbsent(player.getUniqueId(), k -> Bukkit.getScoreboardManager().getNewScoreboard());
-        Objective sidebar = playerScoreboard.getObjective("sidebar");
+        var playerScoreboard = playerScoreboards.computeIfAbsent(player.getUniqueId(), k -> Bukkit.getScoreboardManager().getNewScoreboard());
+        var sidebar = playerScoreboard.getObjective("sidebar");
+        var title = Component.text("MultiFuse")
+                .color(NamedTextColor.GOLD)
+                .append(Component.text(debug ? " [DEBUG]" : "", NamedTextColor.DARK_PURPLE));
+
         if (sidebar == null) {
-            sidebar = playerScoreboard.registerNewObjective("sidebar", "dummy", ChatColor.GOLD + "MultiFuse" + (config.getBoolean("Debug", false) ? (ChatColor.DARK_PURPLE + " [DEBUG]") : ""));
+            sidebar = playerScoreboard.registerNewObjective("sidebar", Criteria.DUMMY, title);
             sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
+        } else {
+            sidebar.displayName(title);
         }
 
-        for (String entry : playerScoreboard.getEntries()) {
+        // Clear existing teams and scores
+        for (var entry : playerScoreboard.getEntries()) {
             playerScoreboard.resetScores(entry);
         }
+        for (var team : playerScoreboard.getTeams()) {
+            team.unregister();
+        }
 
-        int score = 15;
+        var score = 15;
 
         // Team information
         var teams = plugin.game.teams;
         for (var team : teams) {
             var i = 0;
 
-            sidebar.getScore(ChatColor.valueOf(team.toUpperCase()) + team + " Team").setScore(score--);
+            addEntry(playerScoreboard, sidebar, team + " Team", NamedTextColor.NAMES.value(team.toLowerCase()), score--);
+
             for (var fuse : plugin.game.fuseManager.getFuses(team)) {
                 i++;
-                sidebar.getScore(ChatColor.valueOf(team.toUpperCase()) + " - " + "Fuse " + i + ": " + fuse.percentageHealth + "%").setScore(score--);
+                addEntry(playerScoreboard, sidebar, " - Fuse " + i + ": " + fuse.percentageHealth + "%", NamedTextColor.NAMES.value(team.toLowerCase()), score--);
             }
 
-            sidebar.getScore(getBlankLine(score)).setScore(score--);
+            addEntry(playerScoreboard, sidebar, " ", NamedTextColor.WHITE, score--);
         }
 
         // Player information
-        sidebar.getScore(ChatColor.GOLD + "Coins: " + ChatColor.GRAY + PlayerDataManager.getCoins(player)).setScore(score--);
-        sidebar.getScore(ChatColor.GOLD + "Kills: " + ChatColor.GRAY + PlayerDataManager.getKills(player)).setScore(score--);
-        sidebar.getScore(ChatColor.GOLD + "Deaths: " + ChatColor.GRAY + PlayerDataManager.getDeaths(player)).setScore(score--);
+        addEntry(playerScoreboard, sidebar, "Coins: " + PlayerDataManager.getCoins(player), NamedTextColor.GOLD, score--);
+        addEntry(playerScoreboard, sidebar, "Kills: " + PlayerDataManager.getKills(player), NamedTextColor.GOLD, score--);
+        addEntry(playerScoreboard, sidebar, "Deaths: " + PlayerDataManager.getDeaths(player), NamedTextColor.GOLD, score--);
 
         player.setScoreboard(playerScoreboard);
     }
 
+    private void addEntry(Scoreboard scoreboard, Objective objective, String text, TextColor color, int score) {
+        var team = scoreboard.registerNewTeam("line_" + score);
+        team.prefix(Component.text(text, color));
 
-    private String getBlankLine(int score) {
-        return ChatColor.RESET.toString() + ChatColor.DARK_GRAY + String.format("%-" + score + "s", "");
+        String entry = getUniqueString(score);
+        team.addEntry(entry);
+
+        objective.getScore(entry).setScore(score);
+
+        team.suffix(Component.empty());
     }
 
+    private String getUniqueString(int score) {
+        return ChatColor.values()[score % 16] + "" + ChatColor.RESET;
+    }
+
+
     public void removePlayer(Player player) {
-        Scoreboard playerScoreboard = playerScoreboards.remove(player.getUniqueId());
+        var playerScoreboard = playerScoreboards.remove(player.getUniqueId());
         if (playerScoreboard != null) {
-            for (Team team : playerScoreboard.getTeams()) {
+            for (var team : playerScoreboard.getTeams()) {
                 team.removeEntry(player.getName());
             }
         }
-        player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
-    }
-
-    public void onPlayerJoin(Player player) {
-        var playerScoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
-        playerScoreboards.put(player.getUniqueId(), playerScoreboard);
-        updateScoreboard(player);
+        var emptyScoreboard = manager.getNewScoreboard();
+        player.setScoreboard(emptyScoreboard);
     }
 
     public void onPlayerQuit(Player player) {

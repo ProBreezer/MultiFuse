@@ -2,12 +2,12 @@ package com.probreezer.multiFuse.DataManagers;
 
 import com.probreezer.multiFuse.MultiFuse;
 import com.probreezer.multiFuse.Utils.ConfigUtils;
-import com.probreezer.multiFuse.Utils.LocationUtils;
-import com.probreezer.multiFuse.Utils.SpawnPointUtils;
-import com.probreezer.multiFuse.Utils.Text;
+import com.probreezer.untitledNetworkCore.Managers.DisplayNameManager;
+import com.probreezer.untitledNetworkCore.PrefixManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
@@ -16,11 +16,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.probreezer.multiFuse.Utils.RandomUtils.getRandomTeam;
-
 public class PlayerDataManager {
     private static MultiFuse plugin;
-    private static NamespacedKey spawnKey;
     private static NamespacedKey teamKey;
     private static NamespacedKey kitKey;
     private static NamespacedKey coinsKey;
@@ -33,7 +30,6 @@ public class PlayerDataManager {
 
     public static void initialise(MultiFuse plugin) {
         PlayerDataManager.plugin = plugin;
-        spawnKey = new NamespacedKey(plugin, "spawn");
         teamKey = new NamespacedKey(plugin, "team");
         kitKey = new NamespacedKey(plugin, "kit");
         coinsKey = new NamespacedKey(plugin, "coins");
@@ -43,38 +39,46 @@ public class PlayerDataManager {
 
     public static void setTeam(Player player, String team) {
         var currentTeam = getTeam(player);
-
-        if (team != null) {
-            var newTeamSize = getTeamPlayers(team).size();
-            int otherTeamSize;
-
-            if (currentTeam != null) {
-                otherTeamSize = getTeamPlayers(currentTeam).size();
-                if (otherTeamSize != 0) otherTeamSize--;
-            } else {
-                otherTeamSize = getOtherTeamPlayers(team).size();
-            }
-
-            newTeamSize++;
-
-            var loadBalancingCheck = (newTeamSize - otherTeamSize) <= 1;
-
-            if (!loadBalancingCheck) {
-                player.sendMessage(Text.PREFIX + "Too many players on " + ChatColor.valueOf(team.toUpperCase()) + team + "§7 team");
-                return;
-            }
-            var playerSpawnPoint = SpawnPointUtils.getRandomSpawnPoint(team);
-            player.getPersistentDataContainer().set(spawnKey, PersistentDataType.STRING, playerSpawnPoint);
-            player.getPersistentDataContainer().set(teamKey, PersistentDataType.STRING, team);
-        }
+        var persistentData = player.getPersistentDataContainer();
+        TextComponent message;
 
         if (team == null) {
             team = "Gray";
-            player.getPersistentDataContainer().remove(teamKey);
-            player.getPersistentDataContainer().remove(spawnKey);
+            persistentData.remove(teamKey);
+            if (currentTeam != null) {
+                player.sendMessage(PrefixManager.PREFIX.append(
+                        Component.text("You have been removed from the ", NamedTextColor.GRAY)
+                                .append(Component.text(currentTeam, NamedTextColor.NAMES.value(currentTeam.toLowerCase())))
+                                .append(Component.text(" team", NamedTextColor.GRAY))));
+            }
+        } else {
+            var teamColor = NamedTextColor.NAMES.value(team.toLowerCase());
+            var newTeamSize = getTeamPlayers(team).size() + 1;
+            var otherTeamSize = (currentTeam != null)
+                    ? Math.max(0, getTeamPlayers(currentTeam).size() - 1)
+                    : getOtherTeamPlayers(team).size();
+
+            var loadBalancingCheck = (newTeamSize - otherTeamSize) <= 1;
+            if (loadBalancingCheck) {
+                persistentData.set(teamKey, PersistentDataType.STRING, team);
+
+                if (!plugin.game.state) {
+                    player.sendMessage(PrefixManager.PREFIX.append(
+                            Component.text("You have joined the ", NamedTextColor.GRAY)
+                                    .append(Component.text(team, teamColor))
+                                    .append(Component.text(" team", NamedTextColor.GRAY))));
+                }
+            } else {
+                player.sendMessage(PrefixManager.PREFIX.append(
+                        Component.text("Too many players on the ", NamedTextColor.GRAY)
+                                .append(Component.text(team, teamColor))
+                                .append(Component.text(" team", NamedTextColor.GRAY))));
+                return;
+            }
         }
 
-        plugin.game.scoreboard.setPlayerTeam(player, team);
+        DisplayNameManager.updatePlayerDisplayName(player, team);
+        plugin.game.scoreboardManager.setPlayerTeam(player, team);
     }
 
     public static String getTeam(Player player) {
@@ -106,34 +110,29 @@ public class PlayerDataManager {
     }
 
     public static String getTeamWithLowestAmountOfPlayers() {
+        var teams = ConfigUtils.getConfig("teams");
         Map<String, Integer> teamCounts = new HashMap<>();
-        String lowestTeam = null;
-        var lowestCount = Integer.MAX_VALUE;
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            var team = getTeam(player);
-            if (team == null) continue;
-
-            var count = teamCounts.getOrDefault(team, 0) + 1;
-            teamCounts.put(team, count);
-
-            if (count < lowestCount) {
-                lowestCount = count;
-                lowestTeam = team;
-            }
+        for (var team : teams.getKeys(false)) {
+            teamCounts.put(team, 0);
         }
 
-        return lowestTeam != null ? lowestTeam : getRandomTeam();
+        for (var player : Bukkit.getOnlinePlayers()) {
+            var team = getTeam(player);
+            if (team == null) continue;
+            teamCounts.merge(team, 1, Integer::sum);
+        }
+
+        return teamCounts.entrySet().stream()
+                .min(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
     }
+
 
     public static Boolean AllTeamPlayersOffline(String team) {
         var teamPlayers = getTeamPlayers(team);
         return teamPlayers.isEmpty();
-    }
-
-    public static Location getSpawn(Player player) {
-        var stringLocation = player.getPersistentDataContainer().get(spawnKey, PersistentDataType.STRING);
-        return stringLocation.isEmpty() ? null : LocationUtils.stringToLocation(stringLocation);
     }
 
     public static void setKit(Player player, String kit) {

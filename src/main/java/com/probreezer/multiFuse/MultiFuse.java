@@ -1,35 +1,26 @@
 package com.probreezer.multiFuse;
 
-import com.probreezer.multiFuse.Commands.CommandLoader;
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
 import com.probreezer.multiFuse.Game.Game;
-import com.probreezer.multiFuse.Game.PlayerDataManager;
 import com.probreezer.multiFuse.Listeners.EventLoader;
 import com.probreezer.multiFuse.Utils.ConfigUtils;
-import com.probreezer.multiFuse.Utils.HologramUtils;
-import com.probreezer.multiFuse.Utils.SpawnUtils;
-import com.probreezer.multiFuse.Utils.WorldUtils;
+import com.probreezer.untitledNetworkCore.Managers.HologramManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.IOException;
-
 public final class MultiFuse extends JavaPlugin {
-
-    public HologramUtils hologramManager;
+    private static final String PLUGIN_NAME = "MultiFuse";
+    private static MultiFuse instance;
     public Game game;
+    public HologramManager hologramManager;
+
+    public static MultiFuse getInstance() {
+        return instance;
+    }
 
     @Override
     public void onLoad() {
-        //Copy World
-        getLogger().info("Copying World");
-        var worldUtils = new WorldUtils(this);
-        try {
-            worldUtils.replaceWorld();
-        } catch (IOException e) {
-            getLogger().severe("Failed to replace the world: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        getLogger().info("MultiFuse Loaded");
+        instance = this;
+        getLogger().info(PLUGIN_NAME + " Loaded");
     }
 
     @Override
@@ -39,19 +30,12 @@ public final class MultiFuse extends JavaPlugin {
 
         //Configuration
         saveDefaultConfig();
-        reloadConfig();
 
         //Custom Configuration
         ConfigUtils.createCustomConfigs(this);
 
-        //Load Commands
-        CommandLoader.registerCommands(this);
-
         //Hologram Manager
-        this.hologramManager = new HologramUtils(this);
-
-        //Set Default Spawn
-        SpawnUtils.setSpawn(this);
+        this.hologramManager = new HologramManager(this);
 
         //Set Game
         this.game = new Game(this);
@@ -60,7 +44,7 @@ public final class MultiFuse extends JavaPlugin {
         EventLoader.registerEvents(this);
 
         //Plugin Enabled
-        getLogger().info("MultiFuse Enabled");
+        getLogger().info(PLUGIN_NAME + " Enabled");
     }
 
     @Override
@@ -69,6 +53,6 @@ public final class MultiFuse extends JavaPlugin {
         saveConfig();
 
         //Plugin Disabled
-        getLogger().info("MultiFuse Disabled");
+        getLogger().info(PLUGIN_NAME + " Disabled");
     }
 }

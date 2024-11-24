@@ -1,12 +1,24 @@
 package com.probreezer.multiFuse.Game;
 
 import com.probreezer.multiFuse.Blocks.BlockManager;
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
+import com.probreezer.multiFuse.Fuse.FuseManager;
+import com.probreezer.multiFuse.Kits.KitManager;
 import com.probreezer.multiFuse.MultiFuse;
 import com.probreezer.multiFuse.Utils.*;
+import com.probreezer.untitledNetworkCore.CountdownManagers.CountdownManager;
+import com.probreezer.untitledNetworkCore.Managers.SpawnManager;
+import com.probreezer.untitledNetworkCore.PrefixManager;
+import com.probreezer.untitledNetworkCore.UntitledNetworkCore;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.boss.BarColor;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +32,7 @@ public class Game {
     public FuseManager fuseManager;
     public KitManager kitManager;
     public ReplacerUtils wallManager;
-    public ScoreboardUtils scoreboard;
+    public ScoreboardUtils scoreboardManager;
     public CountdownManager countdownManager;
     public boolean state;
     public boolean overtime;
@@ -36,15 +48,31 @@ public class Game {
 
         this.world = plugin.getServer().getWorlds().getFirst();
         this.blockManager = new BlockManager(plugin);
-        this.fuseManager = new FuseManager(plugin, teams);
+        this.fuseManager = new FuseManager(plugin);
         this.kitManager = new KitManager(plugin);
         this.wallManager = new ReplacerUtils(plugin);
-        this.scoreboard = new ScoreboardUtils(plugin);
-        this.countdownManager = new CountdownManager(plugin);
+        this.countdownManager = new CountdownManager();
+        this.scoreboardManager = new ScoreboardUtils(plugin);
         this.state = false;
         this.overtime = false;
 
         loadGame();
+    }
+
+    public static void updateLobbyCountdown(MultiFuse plugin) {
+        if (plugin.game.state) return;
+        var config = plugin.getConfig();
+        var debug = UntitledNetworkCore.isDebug();
+        var numberOfPlayers = plugin.getServer().getOnlinePlayers().size();
+        var countdownManager = plugin.game.countdownManager;
+        var countdownConfig = config.getConfigurationSection("Phases.Start");
+        countdownManager.createCountdown("start", countdownConfig.getInt("Time"), countdownConfig.getString("Title"), BarColor.valueOf(countdownConfig.getString("Colour")), plugin.game::startGame);
+
+        if (numberOfPlayers > (debug ? 0 : 1)) {
+            countdownManager.startCountdown("start");
+        } else {
+            countdownManager.cancelCountdown("start");
+        }
     }
 
     private void loadGame() {
@@ -64,17 +92,19 @@ public class Game {
             InventoryUtils.clearInventory(player);
 
             //Team
-            if (PlayerDataManager.getTeam(player) == null) {
-                PlayerDataManager.setTeam(player, PlayerDataManager.getTeamWithLowestAmountOfPlayers());
+            var playerTeam = PlayerDataManager.getTeam(player);
+            if (playerTeam == null) {
+                playerTeam = PlayerDataManager.getTeamWithLowestAmountOfPlayers();
+                PlayerDataManager.setTeam(player, playerTeam);
             }
 
             //Kit
             var playerKit = PlayerDataManager.getKit(player);
-            this.kitManager.applyKit(plugin, playerKit, player);
+            this.kitManager.applyKit(playerKit, player);
 
-            player.teleport(PlayerDataManager.getSpawn(player));
+            player.teleport(SpawnManager.getTeamSpawnLocation(playerTeam));
             player.setGameMode(GameMode.SURVIVAL);
-            this.scoreboard.setPlayerTeam(player, PlayerDataManager.getTeam(player));
+            this.scoreboardManager.setPlayerTeam(player, PlayerDataManager.getTeam(player));
         }
 
         removeWall();
@@ -100,9 +130,10 @@ public class Game {
     }
 
     public void endGame(String winningTeam) {
-        var isDraw = winningTeam.equalsIgnoreCase("draw");
+        var anyPlayersOnline = Bukkit.getOnlinePlayers()!= null && Bukkit.getOnlinePlayers().size() > 0;
+        var isDraw = winningTeam == null;
 
-        if (isDraw && !this.overtime) {
+        if (anyPlayersOnline && isDraw && !this.overtime) {
             startOvertime();
             this.overtime = true;
             return;
@@ -110,22 +141,25 @@ public class Game {
 
         plugin.getLogger().info("Ending Game...");
 
-        var endGameMessage = isDraw ? ChatColor.GRAY + "Draw!" : ChatColor.valueOf(winningTeam.toUpperCase()) + winningTeam + " Team Wins!";
+        var endGameMessage = isDraw ? Component.text("Draw!", NamedTextColor.GRAY) : Component.text(winningTeam + " Team Wins!", NamedTextColor.NAMES.value(winningTeam.toLowerCase()));
         processPlayersEnd(endGameMessage);
 
         this.countdownManager.cancelAllCountdowns();
+        this.scoreboardManager = null;
         world.setPVP(false);
         this.state = false;
         this.wallManager.restoreBlocks();
 
         runStats();
 
-        Bukkit.broadcastMessage(Text.PREFIX + "Server is restarting in 20 seconds...");
+        Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+            Bukkit.broadcast(PrefixManager.PREFIX.append(Component.text("Server restarting in 10 seconds...", NamedTextColor.GRAY)));
+        }, 5L * 20L);
 
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-            Bukkit.broadcastMessage(Text.PREFIX + "Server is restarting now!");
+            Bukkit.broadcast(PrefixManager.PREFIX.append(Component.text("Server is restarting now!", NamedTextColor.GRAY)));
             Bukkit.spigot().restart();
-        }, 20L * 20L);
+        }, 15L * 20L);
     }
 
     private void startOvertime() {
@@ -146,8 +180,8 @@ public class Game {
                 new Stat("Deaths", PlayerDataManager.getAllPlayerDeaths())
         );
 
-        StringBuilder message = new StringBuilder();
-        message.append(Text.PREFIX).append("--------------=+=--------------\n");
+        var message = Component.text();
+        message.append(PrefixManager.PREFIX).append(Component.text("--------------=+=--------------\n", NamedTextColor.DARK_GRAY));
 
         for (var stat : stats) {
             Map.Entry<String, Integer> topPlayer = stat.data.entrySet().stream()
@@ -161,27 +195,28 @@ public class Game {
                 var value = topPlayer.getValue();
 
 
-                message.append(Text.PREFIX)
-                        .append(ChatColor.GOLD)
-                        .append(stat.name())
-                        .append(": ")
-                        .append(ChatColor.valueOf(team.toUpperCase()))
-                        .append(playerName)
-                        .append(" (")
-                        .append(value)
-                        .append(")\n");
+                message.append(PrefixManager.PREFIX)
+                        .append(Component.text(stat.name(), NamedTextColor.GOLD))
+                        .append(Component.text(": ", NamedTextColor.DARK_GRAY))
+                        .append(Component.text(playerName + " (" + value + ")\n", NamedTextColor.NAMES.value(team.toLowerCase())));
             }
         }
 
-        message.append(Text.PREFIX).append("-------------------------------");
+        message.append(PrefixManager.PREFIX).append(Component.text("-------------------------------", NamedTextColor.DARK_GRAY));
 
-        Bukkit.broadcastMessage(message.toString());
+        Bukkit.broadcast(message.build());
     }
 
+    private void processPlayersEnd(TextComponent endGameMessage) {
+        var times = Title.Times.times(
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(4),
+                Duration.ofSeconds(1)
+        );
+        var titleObject = Title.title(endGameMessage, Component.text(""), times);
 
-    private void processPlayersEnd(String endGameMessage) {
         for (var player : Bukkit.getOnlinePlayers()) {
-            player.sendTitle(endGameMessage, "", 10, 70, 20);
+            player.showTitle(titleObject);
             InventoryUtils.clearInventory(player);
             player.teleport(world.getSpawnLocation());
             player.setGameMode(GameMode.SURVIVAL);
@@ -189,7 +224,7 @@ public class Game {
             player.setFoodLevel(20);
             player.setSaturation(20f);
 
-            this.scoreboard.removePlayer(player);
+            this.scoreboardManager.removePlayer(player);
             PlayerDataManager.resetPlayerData(player);
         }
     }

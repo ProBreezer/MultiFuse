@@ -1,11 +1,16 @@
 package com.probreezer.multiFuse.Listeners;
 
-import com.probreezer.multiFuse.Game.PlayerDataManager;
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
 import com.probreezer.multiFuse.MultiFuse;
 import com.probreezer.multiFuse.Utils.InventoryUtils;
-import com.probreezer.multiFuse.Utils.Text;
+import com.probreezer.multiFuse.Utils.ItemUtils;
+import com.probreezer.untitledNetworkCore.PrefixManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -17,7 +22,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.persistence.PersistentDataType;
 
 import static com.probreezer.multiFuse.Blocks.BlockManager.getTeamShopBlock;
-import static com.probreezer.multiFuse.Game.Menu.*;
+import static com.probreezer.multiFuse.Menus.Menu.*;
 
 public class MenuListener implements Listener {
 
@@ -55,13 +60,13 @@ public class MenuListener implements Listener {
             return;
         }
 
-        if (item.getType() == Material.WHITE_WOOL && meta.getDisplayName().equalsIgnoreCase(ChatColor.GOLD + "Select Team")) {
+        if (item.getType() == Material.WHITE_WOOL && meta.displayName().equals(Component.text("Select Team", NamedTextColor.GOLD))) {
             openTeamMenu(plugin, player);
             event.setCancelled(true);
             return;
         }
 
-        if (item.getType() == Material.BOOK && meta.getDisplayName().equalsIgnoreCase(ChatColor.GOLD + "Select Class")) {
+        if (item.getType() == Material.BOOK && meta.displayName().equals(Component.text("Select Class", NamedTextColor.GOLD))) {
             openKitMenu(plugin, player);
             event.setCancelled(true);
         }
@@ -73,11 +78,11 @@ public class MenuListener implements Listener {
         var team = PlayerDataManager.getTeam(player);
         var clickedItem = event.getCurrentItem();
 
-        if (event.getView().getTitle().equals(ChatColor.BOLD + "Select Your Team")) {
+        if (event.getView().title().equals(Component.text("Select Your Team", Style.style(TextDecoration.BOLD)))) {
             event.setCancelled(true);
 
             if (clickedItem != null && clickedItem.hasItemMeta() && clickedItem.getItemMeta().hasDisplayName()) {
-                var itemName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+                var itemName = PlainTextComponentSerializer.plainText().serialize(clickedItem.getItemMeta().displayName());
                 var itemNameSplit = itemName.split(" ")[0].trim();
                 var teamColour = itemNameSplit.equalsIgnoreCase("No") ? null : itemNameSplit;
 
@@ -88,11 +93,11 @@ public class MenuListener implements Listener {
             player.closeInventory();
         }
 
-        if (event.getView().getTitle().equals(ChatColor.BOLD + "Select Your Kit")) {
+        if (event.getView().title().equals(Component.text("Select Your Kit", Style.style(TextDecoration.BOLD)))) {
             event.setCancelled(true);
 
             if (clickedItem != null && clickedItem.hasItemMeta() && clickedItem.getItemMeta().hasDisplayName()) {
-                var itemName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+                var itemName = PlainTextComponentSerializer.plainText().serialize(clickedItem.getItemMeta().displayName());
                 var kit = itemName;
 
                 if (PlayerDataManager.getKit(player) != kit) {
@@ -102,7 +107,7 @@ public class MenuListener implements Listener {
             player.closeInventory();
         }
 
-        if (event.getView().getTitle().equals(ChatColor.BOLD + "Shop")) {
+        if (event.getView().title().equals(Component.text("Shop", Style.style(TextDecoration.BOLD)))) {
             event.setCancelled(true);
 
             var shopItemKey = new NamespacedKey(Bukkit.getPluginManager().getPlugin("MultiFuse"), "ShopItem");
@@ -117,9 +122,10 @@ public class MenuListener implements Listener {
                 if (playerCoins >= cost) {
                     PlayerDataManager.removeCoins(player, cost);
                     InventoryUtils.giveItems(player, item, amount, null, null, null);
-                    player.sendMessage(Text.PREFIX + "purchased: " + amount + "x " + item.name());
+                    var itemName = ItemUtils.getFriendlyItemName(item.name());
+                    player.sendMessage(PrefixManager.PREFIX.append(Component.text("Purchased: " + amount + "x " + itemName, NamedTextColor.GRAY)));
                 } else {
-                    player.sendMessage(Text.ERRORPREFIX + "You do not have enough gold to purchase this item.");
+                    player.sendMessage(PrefixManager.ERRORPREFIX.append(Component.text("You do not have enough gold to purchase this item.", NamedTextColor.RED)));
                 }
             }
             player.closeInventory();

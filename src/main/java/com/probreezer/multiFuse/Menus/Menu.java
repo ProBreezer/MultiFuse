@@ -1,8 +1,13 @@
 package com.probreezer.multiFuse.Menus;
 
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
 import com.probreezer.multiFuse.MultiFuse;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
@@ -40,7 +45,7 @@ public class Menu {
             var colour = Optional.ofNullable(sectionConfig.getString("colour")).orElse("GOLD");
             var prompt = Optional.ofNullable(sectionConfig.getString("prompt")).orElse("");
 
-            var item = createMenuItem(Material.valueOf(material), ChatColor.valueOf(colour) + prompt);
+            var item = createMenuItem(Material.valueOf(material), Component.text(prompt, NamedTextColor.NAMES.value(colour.toLowerCase())));
             inventory.setItem(placement, item);
             placement++;
         }
@@ -48,7 +53,7 @@ public class Menu {
 
     public static void openTeamMenu(MultiFuse plugin, Player player) {
         var game = plugin.game;
-        var teamMenu = Bukkit.createInventory(null, 9, ChatColor.BOLD + "Select Your Team");
+        var teamMenu = Bukkit.createInventory(null, 9, Component.text("Select Your Team", Style.style(TextDecoration.BOLD)));
 
         var teams = game.teams;
         var playerTeam = PlayerDataManager.getTeam(player);
@@ -62,7 +67,7 @@ public class Menu {
             placement++;
         }
 
-        var noTeam = createMenuItem(Material.GRAY_WOOL, ChatColor.GRAY + "No Team");
+        var noTeam = createMenuItem(Material.GRAY_WOOL, Component.text("No Team", NamedTextColor.GRAY));
         if (playerTeam == null) applyEnchantment(noTeam);
         teamMenu.setItem(8, noTeam);
 
@@ -70,13 +75,13 @@ public class Menu {
     }
 
     public static void openKitMenu(MultiFuse plugin, Player player) {
-        var classMenu = Bukkit.createInventory(null, 9, ChatColor.BOLD + "Select Your Kit");
+        var classMenu = Bukkit.createInventory(null, 9, Component.text("Select Your Kit", Style.style(TextDecoration.BOLD)));
         var kits = plugin.game.kitManager.kits;
         var placement = 0;
 
         for (String kitName : kits.keySet()) {
             var kit = kits.get(kitName);
-            var kitIcon = createMenuItem(kit.item, ChatColor.GRAY + kitName);
+            var kitIcon = createMenuItem(kit.item, Component.text(kitName, NamedTextColor.GRAY));
             var playerKit = PlayerDataManager.getKit(player);
 
             if (kitName.equals(playerKit)) applyEnchantment(kitIcon);
@@ -89,7 +94,7 @@ public class Menu {
     }
 
     public static void openShopMenu(MultiFuse plugin, Player player) {
-        var shopMenu = Bukkit.createInventory(null, 54, ChatColor.BOLD + "Shop");
+        var shopMenu = Bukkit.createInventory(null, 54, Component.text("Shop", Style.style(TextDecoration.BOLD)));
         var shopConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "shop.yml"));
 
         for (var shopItem : shopConfig.getKeys(false)) {
@@ -103,11 +108,11 @@ public class Menu {
     }
 
 
-    private static ItemStack createMenuItem(Material material, String displayName) {
+    private static ItemStack createMenuItem(Material material, TextComponent displayName) {
         var item = new ItemStack(material);
         var meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(displayName);
+            meta.displayName(displayName);
             item.setItemMeta(meta);
         }
         return item;
@@ -118,15 +123,15 @@ public class Menu {
         var item = new ItemStack(material);
         var meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.valueOf(team.toUpperCase()) + team + " Team");
+            meta.displayName(Component.text(team + " Team", NamedTextColor.NAMES.value(team.toLowerCase())));
 
             if (!playerNames.isEmpty()) {
-                List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.GRAY + "Players:");
+                List<Component> lore = new ArrayList<>();
+                lore.add(Component.text("Players:", NamedTextColor.GRAY));
                 for (String playerName : playerNames) {
-                    lore.add(ChatColor.GRAY + "- " + playerName);
+                    lore.add(Component.text("- " + playerName, NamedTextColor.GRAY));
                 }
-                meta.setLore(lore);
+                meta.lore(lore);
             }
             item.setItemMeta(meta);
         }
@@ -140,9 +145,9 @@ public class Menu {
         if (meta != null && config.contains("Cost")) {
             var cost = config.getInt("Cost");
 
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GOLD + "Cost: " + cost + " Gold Coins");
-            meta.setLore(lore);
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text("Cost: " + cost + " Gold Coins", NamedTextColor.GOLD));
+            meta.lore(lore);
 
             var shopItemKey = new NamespacedKey(Bukkit.getPluginManager().getPlugin("MultiFuse"), "ShopItem");
             var costKey = new NamespacedKey(Bukkit.getPluginManager().getPlugin("MultiFuse"), "Shop" + material.name());

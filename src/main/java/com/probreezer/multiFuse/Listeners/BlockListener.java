@@ -40,7 +40,7 @@ public class BlockListener implements Listener {
         var blockType = block.getType();
         var blockName = blockType.name();
         var blockData = block.getBlockData();
-        var blockExp = event.getExpToDrop();
+        var blockExp = 2;
         var player = event.getPlayer();
         var tool = player.getInventory().getItemInMainHand();
 

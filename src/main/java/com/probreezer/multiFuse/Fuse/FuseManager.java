@@ -1,6 +1,8 @@
 package com.probreezer.multiFuse.Fuse;
 
+import com.probreezer.multiFuse.Game.Game;
 import com.probreezer.multiFuse.MultiFuse;
+import com.probreezer.multiFuse.Shop.Shop;
 import com.probreezer.multiFuse.Utils.ConfigUtils;
 import com.probreezer.multiFuse.Utils.Coordinates;
 import org.bukkit.block.Block;
@@ -9,6 +11,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class FuseManager {
@@ -18,12 +21,12 @@ public class FuseManager {
     private final YamlConfiguration config;
     public List<Fuse> fuses = new ArrayList<>();
 
-    public FuseManager(MultiFuse plugin, ArrayList<String> teams) {
+    public FuseManager(MultiFuse plugin) {
         this.plugin = plugin;
         this.game = plugin.game;
         this.config = ConfigUtils.getConfig("teams");
 
-        setFuses(teams);
+        setFuses();
     }
 
     public Fuse getFuse(Block block) {
@@ -33,11 +36,7 @@ public class FuseManager {
                 .orElse(null);
     }
 
-    public List<Fuse> getFuses() {
-        return this.fuses;
-    }
-
-    public void setFuses(ArrayList<String> teams) {
+    public void setFuses() {
         var config = plugin.getConfig();
 
         for (var team : this.config.getKeys(false)) {
@@ -45,7 +44,7 @@ public class FuseManager {
             var fuses = teamSection.getStringList("Fuses");
             var totalFuseHealth = config.getInt("TotalFuseHealth", 100);
             var numberOfFuses = fuses.size();
-            var shop = new Shop(plugin, team);
+            new Shop(plugin, team);
 
             for (int i = 0; i < numberOfFuses; i++) {
                 var Fuse = fuses.get(i);
@@ -72,12 +71,22 @@ public class FuseManager {
     }
 
     public String getTeamWithHighestTotalFuseHealth() {
-        return fuses.stream()
-                .collect(Collectors.groupingBy(Fuse::getTeamColour, Collectors.summingInt(Fuse::getHealth)))
-                .entrySet()
-                .stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(null);
+        String winningTeam = null;
+
+        Map<String, Integer> teamScores = fuses.stream()
+                .collect(Collectors.groupingBy(Fuse::getTeamColour, Collectors.summingInt(Fuse::getHealth)));
+
+        Optional<Map.Entry<String, Integer>> maxEntry = teamScores.entrySet().stream()
+                .max(Map.Entry.comparingByValue());
+
+        if (maxEntry.isPresent()) {
+            var maxScore = maxEntry.get().getValue();
+            var teamsWithMaxScore = teamScores.values().stream().filter(score -> score == maxScore).count();
+
+            if (teamsWithMaxScore == 1) {
+                winningTeam = maxEntry.get().getKey();
+            }
+        }
+        return winningTeam;
     }
 }

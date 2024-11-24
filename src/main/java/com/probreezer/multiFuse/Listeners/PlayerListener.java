@@ -1,15 +1,22 @@
 package com.probreezer.multiFuse.Listeners;
 
-import com.probreezer.multiFuse.Game.Menu;
-import com.probreezer.multiFuse.Game.PlayerDataManager;
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
+import com.probreezer.multiFuse.Menus.Menu;
 import com.probreezer.multiFuse.MultiFuse;
 import com.probreezer.multiFuse.Utils.InventoryUtils;
-import com.probreezer.multiFuse.Utils.Text;
-import org.bukkit.*;
+import com.probreezer.untitledNetworkCore.Managers.SpawnManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
@@ -19,7 +26,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.Arrays;
 import java.util.function.Predicate;
 
-import static com.probreezer.multiFuse.Utils.CountdownManager.updateLobbyCountdown;
+import static com.probreezer.multiFuse.Game.Game.updateLobbyCountdown;
 
 public class PlayerListener implements Listener {
 
@@ -34,11 +41,9 @@ public class PlayerListener implements Listener {
         var player = event.getPlayer();
         var team = PlayerDataManager.getTeam(player);
         var isPlayerPresent = team != null;
-        player.sendTitle("§6MultiFuse!", "§1A ProBreezer Gamemode", 10, 70, 20);
-        event.setJoinMessage(Text.getRolePrefix(player) + ChatColor.GOLD + player.getName() + ChatColor.GRAY + " has " + ChatColor.GREEN + "joined" + ChatColor.GRAY + " the game");
+
         team = team != null ? team : "Gray";
-        plugin.game.scoreboard.onPlayerJoin(player);
-        plugin.game.scoreboard.setPlayerTeam(player, team);
+        plugin.game.scoreboardManager.setPlayerTeam(player, team);
 
         if (plugin.game.state) {
             if (!isPlayerPresent) {
@@ -62,10 +67,6 @@ public class PlayerListener implements Listener {
         var player = event.getPlayer();
         var team = PlayerDataManager.getTeam(player);
 
-        plugin.game.scoreboard.onPlayerQuit(player);
-
-        event.setQuitMessage(Text.getRolePrefix(player) + ChatColor.GOLD + player.getName() + ChatColor.GRAY + " has " + ChatColor.RED + "quit" + ChatColor.GRAY + " the game");
-
         if (Bukkit.getOnlinePlayers().isEmpty()) {
             Bukkit.getScheduler().runTaskLater(plugin, Bukkit::shutdown, 1L);
             return;
@@ -73,16 +74,18 @@ public class PlayerListener implements Listener {
 
         if (gameState && team != null) {
             var teamName = team;
+            plugin.game.scoreboardManager.onPlayerQuit(player);
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                var allTeamPlayersOffline = PlayerDataManager.AllTeamPlayersOffline(teamName);
+                if (!PlayerDataManager.AllTeamPlayersOffline(teamName)) return;
 
-                if (allTeamPlayersOffline) {
-                    var otherTeam = PlayerDataManager.getTeam(PlayerDataManager.getOtherTeamPlayers(teamName).get(0));
-                    if (otherTeam != null) {
-                        game.endGame(otherTeam);
-                    }
+                var otherTeamPlayers = PlayerDataManager.getOtherTeamPlayers(teamName);
+                if (otherTeamPlayers.isEmpty()) {
+                    game.endGame(null);
+                    return;
                 }
+
+                game.endGame(PlayerDataManager.getTeam(otherTeamPlayers.get(0)));
             }, 5L);
         } else {
             Bukkit.getScheduler().runTaskLater(plugin, () -> updateLobbyCountdown(plugin), 1L);
@@ -111,16 +114,9 @@ public class PlayerListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         var player = event.getEntity();
         var killer = player.getKiller();
-        var playerTeam = PlayerDataManager.getTeam(player);
-        var playerChatColor = ChatColor.valueOf(playerTeam.toUpperCase());
 
         if (killer != null) {
             PlayerDataManager.incrementKills(killer);
-            var killerTeam = PlayerDataManager.getTeam(killer);
-            var killerChatColor = ChatColor.valueOf(killerTeam.toUpperCase());
-            event.setDeathMessage(playerChatColor + player.getName() + ChatColor.GRAY + " was killed by " + killerChatColor + killer.getName());
-        } else {
-            event.setDeathMessage(playerChatColor + player.getName() + ChatColor.GRAY + " killed themselves");
         }
 
         PlayerDataManager.incrementDeaths(player);
@@ -167,31 +163,29 @@ public class PlayerListener implements Listener {
                 player.spigot().respawn();
                 player.getInventory().clear();
                 player.setGameMode(GameMode.SPECTATOR);
-                player.sendMessage(ChatColor.GRAY + "You will respawn in 10 seconds...");
+                player.sendMessage(Component.text("You will respawn in 10 seconds...", NamedTextColor.GRAY));
 
-                if (PlayerDataManager.getSpawn(player) != null) {
-                    player.teleport(PlayerDataManager.getSpawn(player));
-                }
+                var playerTeam = PlayerDataManager.getTeam(player);
+                var spawnLocation = SpawnManager.getTeamSpawnLocation(playerTeam) == null ? SpawnManager.getWorldSpawn() : SpawnManager.getTeamSpawnLocation(playerTeam);
+
+                player.teleport(spawnLocation);
 
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        if (PlayerDataManager.getSpawn(player) != null) {
-                            player.teleport(PlayerDataManager.getSpawn(player));
-                        }
-
+                        player.teleport(spawnLocation);
                         player.setGameMode(GameMode.SURVIVAL);
                         player.getInventory().setContents(inventory);
                         player.getInventory().setItemInOffHand(offHand);
                         player.getInventory().setArmorContents(armor);
-
-                        player.setHealth(player.getMaxHealth());
+                        player.setHealth(player.getHealthScale());
                         player.setFoodLevel(20);
                         player.setSaturation(20f);
                     }
                 }.runTaskLater(plugin, respawnTime * 20L);
             }
         }.runTaskLater(plugin, 5L);
+
     }
 
     private boolean isArmor(Player player, Material material) {
@@ -230,17 +224,18 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerPickupItem(PlayerPickupItemEvent event) {
+    public void onPlayerPickupItem(EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
         var pickupItem = event.getItem();
         var itemStack = pickupItem.getItemStack();
         var pickupItemType = itemStack.getType();
-        var pickupItemName = itemStack.getItemMeta().getDisplayName();
-        var pickupItemLore = itemStack.getItemMeta().getLore();
+        var pickupItemName = itemStack.getItemMeta().displayName() != null ? PlainTextComponentSerializer.plainText().serialize(itemStack.getItemMeta().displayName()) : null;
+        var pickupItemLore = itemStack.getItemMeta().lore();
         String pickupItemDescription = null;
         if (pickupItemLore != null) {
-            pickupItemDescription = pickupItemLore.getFirst();
+            pickupItemDescription = String.valueOf(pickupItemLore.getFirst());
         }
-        var player = event.getPlayer();
+        var player = ((Player) event.getEntity()).getPlayer();
         var droppedItem = plugin.game.blockManager.getDropItem(pickupItemType.name());
 
         if (droppedItem == null) return;
