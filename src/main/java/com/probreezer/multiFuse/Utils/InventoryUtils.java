@@ -1,5 +1,6 @@
 package com.probreezer.multiFuse.Utils;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -51,7 +52,7 @@ public class InventoryUtils {
         var meta = item.getItemMeta();
         if (meta != null) {
             if (customName != null) {
-                meta.setDisplayName(customName);
+                meta.displayName(Component.text(customName));
             }
             if (description != null) {
                 meta.setLore(Collections.singletonList(description));
