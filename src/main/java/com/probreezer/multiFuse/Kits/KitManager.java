@@ -51,7 +51,7 @@ public class KitManager {
                 }
 
                 @SuppressWarnings("unchecked")
-                Map<String, Object> itemMap = (Map<String, Object>) itemObj;
+                var itemMap = (Map<String, Object>) itemObj;
 
                 try {
                     var material = Material.valueOf((String) itemMap.get("material"));
@@ -69,11 +69,9 @@ public class KitManager {
         }
     }
 
-    public void applyKit(MultiFuse plugin, String kitName, Player player) {
-        plugin.getLogger().info("Applying kit " + kitName + " to " + player.getName());
+    public void applyKit(String kitName, Player player) {
         var kit = kits.get(kitName);
         if (kit != null) {
-            plugin.getLogger().info("Kit found");
             kit.applyTo(player);
         }
     }
