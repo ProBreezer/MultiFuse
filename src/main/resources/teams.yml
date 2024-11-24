@@ -1,7 +1,7 @@
 ﻿Red:
   SpawnArea:
-    - "98,72.50,-2"
-    - "94,72.50,3"
+    - "98,73,-2"
+    - "94,73,3"
   FuseBlock: RED_TERRACOTTA
   Fuses:
     - "89,64,-12"
@@ -12,8 +12,8 @@
   ShopLocation: "98,60,0"
 Blue:
   SpawnArea:
-    - "-93,72.50,-2"
-    - "-97,72.50,3"
+    - "-93,73,-2"
+    - "-97,73,3"
   FuseBlock: BLUE_TERRACOTTA
   Fuses:
     - "-89,64,12"
