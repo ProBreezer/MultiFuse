@@ -2,13 +2,6 @@ name: MultiFuse
 version: '0.1'
 main: com.probreezer.multiFuse.MultiFuse
 api-version: '1.21'
+network-plugin-type: 'gamemode'
 depend:
-  - DecentHolograms
-commands:
-  countdown:
-    description: Change specific countdown state
-    permission: multifuse.admin
-permissions:
-  multifuse.admin:
-    description: Allows admin commands
-    default: op
+  - UntitledNetworkCore
