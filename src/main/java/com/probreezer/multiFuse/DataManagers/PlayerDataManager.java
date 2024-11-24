@@ -1,4 +1,4 @@
-package com.probreezer.multiFuse.Game;
+package com.probreezer.multiFuse.DataManagers;
 
 import com.probreezer.multiFuse.MultiFuse;
 import com.probreezer.multiFuse.Utils.ConfigUtils;

@@ -1,4 +1,4 @@
-package com.probreezer.multiFuse.Game;
+package com.probreezer.multiFuse.Kits;
 
 import com.probreezer.multiFuse.MultiFuse;
 import org.bukkit.Material;

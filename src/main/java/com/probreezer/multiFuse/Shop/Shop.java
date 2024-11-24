@@ -1,4 +1,4 @@
-package com.probreezer.multiFuse.Game;
+package com.probreezer.multiFuse.Shop;
 
 import com.probreezer.multiFuse.Blocks.BlockManager;
 import com.probreezer.multiFuse.MultiFuse;

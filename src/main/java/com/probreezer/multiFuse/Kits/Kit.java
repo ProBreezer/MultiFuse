@@ -1,5 +1,6 @@
-package com.probreezer.multiFuse.Game;
+package com.probreezer.multiFuse.Kits;
 
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
 import com.probreezer.multiFuse.MultiFuse;
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
