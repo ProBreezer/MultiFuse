@@ -40,6 +40,12 @@ Gravel:
   Items:
     Flint:
       Quantity: 1
+Lapis_Ore:
+  Respawn: 30
+  Replace: Cobblestone
+  Items:
+    Lapis_Lazuli:
+      Quantity: 1
 Coal_Ore:
   Respawn: 10
   Replace: Cobblestone
@@ -64,6 +70,10 @@ Gold_Ore:
   Respawn: 30
   Replace: Cobblestone
   Coins: 3
+Raw_Gold_Block:
+  Respawn: 60
+  Replace: Cobblestone
+  Coins: 25
 Diamond_Ore:
   Respawn: 60
   Replace: Cobblestone
