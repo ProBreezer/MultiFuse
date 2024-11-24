@@ -1,6 +1,6 @@
 package com.probreezer.multiFuse.Listeners;
 
-import com.probreezer.multiFuse.Game.PlayerDataManager;
+import com.probreezer.multiFuse.DataManagers.PlayerDataManager;
 import com.probreezer.multiFuse.MultiFuse;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
